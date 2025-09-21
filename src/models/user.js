@@ -13,7 +13,15 @@ const userSchema = new mongoose.Schema({
     age:{
         type:Number,
         required:true,
-    }
+    },
+    profileImg:{
+        type:String,
+        required:false,
+    },
+    password:{
+        type:String,
+        required:true,
+    },
 }) 
 
 module.exports = mongoose.model("User",userSchema)
