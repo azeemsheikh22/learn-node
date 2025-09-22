@@ -1,9 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const User = require("../models/user");
+const Token = require("../models/token");
 const path = require("path");
 const multer = require("multer");
-
+const jwt = require("jsonwebtoken");
 const storage = multer.diskStorage({
   destination: "./uploads/",
   filename: (req, file, cb) => {
@@ -15,9 +16,11 @@ const upload = multer({
   storage: storage,
 });
 
-router.post("/login", async (req,res) => {
+const JWT_SECRET = process.env.JWT_SECRET;
+
+router.post("/login", async (req, res) => {
   try {
-    const {email,password} = req.body;
+    const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -25,7 +28,15 @@ router.post("/login", async (req,res) => {
     if (user.password !== password) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
-    res.status(200).json({ message: "Login successful" });
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+      expiresIn: "1h",
+    });
+    const expiredAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+    const userToken = new Token({ userId: user._id, token, expiredAt });
+    await userToken.save();
+
+    res.status(200).json({ message: "Login successful", token });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
